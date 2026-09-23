@@ -9295,6 +9295,18 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     <div class="powered-by-text" style="margin-top:14px">✨ Powered By Kumaresh Malick ✨</div>
     <div class="login-phone">📞 9641319874</div>
   </div>
+
+  <!-- Forced password-change screen — shown once, right after login, when the
+       admin has flagged this account as "must change password on next login" -->
+  <div class="login-box" id="forceChangeBox" style="display:none">
+    <div class="login-logo-area"><span style="font-size:50px">🔒</span></div>
+    <div class="login-animated-title">পাসওয়ার্ড বদলাতে হবে</div>
+    <div class="login-sub">আগে বসানো হয়েছিল, এখন নিজের একটা নতুন পাসওয়ার্ড দিন</div>
+    <input class="login-input" type="password" id="fcNewPass" placeholder="🔑 নতুন পাসওয়ার্ড (৬+ ক্যারেক্টার)" style="margin-bottom:10px">
+    <input class="login-input" type="password" id="fcNewPass2" placeholder="🔑 আবার লিখুন">
+    <button class="login-btn" onclick="doForceChangePassword()">✅ পাসওয়ার্ড সেভ করে ঢুকুন</button>
+    <div class="login-err" id="fcErr"></div>
+  </div>
 </div>
 
 <!-- ═══════════════════════════ MAIN APP ═══════════════════════════ -->
@@ -9308,6 +9320,8 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     </div>
     <div class="erp-company" id="hdrCompany" onclick="cmTogglePanel(event)" style="cursor:pointer;" title="Company Manager">ERP System</div>
     <span class="erp-user" id="hdrUser"></span>
+    <span id="rpSyncStatus" style="font-size:11px;font-weight:700;margin:0 6px;white-space:nowrap"></span>
+    <button class="hdr-btn" onclick="openMyProfile()" style="display:inline-flex;align-items:center;gap:5px;font-weight:700;padding:5px 10px;"><span style="font-size:15px">👤</span><span>My Profile</span></button>
     <button class="hdr-btn" id="v4ThemeBtn" onclick="v4TogglePanel()" style="display:inline-flex;align-items:center;gap:5px;font-weight:700;padding:5px 10px;"><span style="font-size:15px">🎨</span><span>Theme</span></button>
     <button class="hdr-btn" id="v4CompanyBtn" onclick="cmTogglePanel(event)" style="display:inline-flex;align-items:center;gap:5px;font-weight:700;padding:5px 10px;" title="Company Manager"><span style="font-size:15px">🗂️</span><span id="v4CompanyLabel">Company</span></button>
     <button class="hdr-btn" onclick="doLogout()" style="display:inline-flex;align-items:center;gap:5px;"><span style="font-size:15px">🚪</span><span id="v4LogoutLabel">Logout</span></button>
@@ -11993,7 +12007,14 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
         <div class="grid4"><div class="field"><label>Employee</label><select id="empExpenseEmp"></select></div><div class="field"><label>Date</label><input type="date" id="empExpenseDate"></div><div class="field"><label>Category</label><select id="empExpenseCategory"><option>Travel</option><option>Food</option><option>Medical</option><option>Phone</option><option>Other</option></select></div><div class="field"><label>Amount ₹</label><input type="number" id="empExpenseAmount" min="0"></div></div>
         <div class="grid2"><div class="field"><label>Note</label><textarea id="empExpenseNote" rows="2"></textarea></div><div class="field"><label>Bill File</label><input type="file" id="empExpenseFile" onchange="previewEmployeeExpense(event)" style="width:100%;padding:5px"><div id="empExpenseFileName" style="font-size:10px;color:#777">No file selected</div></div></div>
         <button class="btn btn-success" onclick="saveEmployeeExpense()">💾 Submit Expense</button>
-      </div><div class="card"><div id="empExpenseList"></div></div></div>
+      </div><div class="card">
+        <div class="filter-bar" style="flex-wrap:wrap;gap:6px">
+          <button class="btn btn-info btn-sm" onclick="exportEmployeeExpensesXLSX()">📊 Excel Export</button>
+          <button class="btn btn-info btn-sm" onclick="exportEmployeeExpensesPDF()">📄 PDF Export</button>
+          <button class="btn btn-primary btn-sm" onclick="shareEmployeeExpensesPDF()">📤 Share PDF (WhatsApp/OneDrive)</button>
+          <button class="btn btn-primary btn-sm" onclick="shareEmployeeExpensesXLSX()">📤 Share Excel</button>
+        </div>
+        <div id="empExpenseList"></div></div></div>
 
       <div id="empSub-org" style="display:none"><div class="split"><div class="card"><h2>🏢 Departments &amp; Organization</h2>
         <div class="grid2"><div class="field"><label>New Department</label><input id="empNewDept" placeholder="Department name"></div><div class="field"><label>Department Head</label><select id="empDeptHead"></select></div></div><button class="btn btn-success btn-sm" onclick="saveEmployeeDepartment()">➕ Save Department</button><div id="empDeptList" style="margin-top:12px"></div>
@@ -18086,23 +18107,64 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
           <h2>👤 Add / Edit User</h2>
           <input type="hidden" id="userEditId">
           <div class="field"><label>Username *</label><input id="newUsername" placeholder="Username"></div>
-          <div class="field"><label>Password *</label>
+          <div class="field"><label id="newPasswordLabel">Password *</label>
             <input type="password" id="newPassword" placeholder="Password (min 6 chars)"></div>
           <div class="field"><label>Role</label>
             <select id="newRole">
               <option value="admin">Admin (Full Access)</option>
               <option value="manager">Manager</option>
               <option value="salesperson">Sales Person</option>
+              <option value="staff">Staff</option>
               <option value="viewer">Viewer (Read Only)</option></select></div>
           <div class="field"><label>Display Name</label><input id="newDisplayName" placeholder="Full name"></div>
+          <div class="field"><label>Account Expiry Date <span style="font-weight:normal;color:#888">(ঐচ্ছিক — খালি রাখলে কখনো এক্সপায়ার হবে না)</span></label>
+            <input type="date" id="newExpiryDate"></div>
+          <div class="field" style="display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="newMustChangePw" style="width:auto">
+            <label style="margin:0;font-weight:normal">প্রথম লগইনেই নিজের পাসওয়ার্ড বদলাতে বাধ্য করুন</label>
+          </div>
+          <div class="field" id="userActiveWrap" style="display:none">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:normal">
+              <input type="checkbox" id="newUserActive" checked style="width:auto"> Active (আনচেক করলে লগইন বন্ধ হয়ে যাবে)
+            </label>
+          </div>
+          <div class="field">
+            <label>🎯 বিশেষ অনুমতি (রোলের বাইরে গিয়ে, ঐচ্ছিক)</label>
+            <div style="display:flex;gap:8px;font-size:11px">
+              <div style="flex:1">
+                <div style="color:#2e7d32;margin-bottom:2px">✅ Extra Allow (রোলে না থাকলেও)</div>
+                <select id="permAllow" multiple size="5" style="width:100%;font-size:11px"></select>
+              </div>
+              <div style="flex:1">
+                <div style="color:#c62828;margin-bottom:2px">🚫 Deny (রোলে থাকলেও ব্লক)</div>
+                <select id="permDeny" multiple size="5" style="width:100%;font-size:11px"></select>
+              </div>
+            </div>
+            <div style="font-size:10px;color:#888;margin-top:2px">একাধিক সিলেক্ট করতে Ctrl/Cmd চেপে ধরে ট্যাপ করুন</div>
+          </div>
           <div class="btn-row">
             <button class="btn btn-success" onclick="saveUser()">💾 Save User</button>
             <button class="btn btn-warning" onclick="clearUserForm()">🔄 Clear</button>
           </div>
+          <div style="font-size:10.5px;color:#888;margin-top:6px">🔐 এখানে যে ইউজার তৈরি করবেন সে সরাসরি সার্ভারে (সবার জন্য শেয়ার্ড) লগইন করতে পারবে।</div>
+
+          <hr style="margin:14px 0">
+          <h3 style="margin:0 0 8px">📤 বাল্ক স্টাফ যোগ (CSV)</h3>
+          <div style="font-size:10.5px;color:#888;margin-bottom:6px">CSV ফরম্যাট: <code>username,password,name,role</code> (প্রথম লাইন header হিসেবে বাদ যাবে)</div>
+          <input type="file" id="csvImportFile" accept=".csv" style="width:100%;margin-bottom:8px">
+          <button class="btn btn-info" onclick="downloadCSVTemplate()">📄 নমুনা CSV ডাউনলোড</button>
+          <button class="btn btn-success" onclick="importUsersCSV()">📤 Import করুন</button>
+          <div id="csvImportMsg" style="margin-top:8px;font-size:12px"></div>
         </div>
         <div class="card">
-          <h2>👥 User List</h2>
-          <div id="userList"></div>
+          <h2>👥 User List
+            <button class="btn btn-info btn-sm" style="float:right;margin-left:4px" onclick="syncUsersFromServer()">🔄 রিফ্রেশ</button>
+            <button class="btn btn-purple btn-sm" style="float:right;margin-left:4px" onclick="openLoginHistory()">🕘 Login History</button>
+            <button class="btn btn-purple btn-sm" style="float:right" onclick="openActivityLog()">📝 Activity Log</button>
+          </h2>
+          <button class="btn btn-info btn-sm" onclick="exportUsersCSV()">📥 Users CSV</button>
+          <button class="btn btn-info btn-sm" onclick="exportLoginHistoryCSV()">📥 Login History CSV</button>
+          <div id="userList" style="margin-top:8px"></div>
           <div style="margin-top:12px;padding:10px;background:#fff3e0;border-radius:6px;font-size:11px">
             <strong>⚠️ Note:</strong> There must always be at least one Admin user.
           </div>
@@ -18842,7 +18904,7 @@ let state = {
   gst2bEntries:[], gstr2bEntries:[], gstNotes:[], gstEinvoices:[], gstHsnMaster:[],
   gstFilingRecords:[],
   purchaseOrders:[], purchaseReturns:[],
-  users:[{id:'u1',username:'Cyber Infotech',password:'cyber@321',role:'admin',name:'Cyber Infotech'}],
+  users:[],
   settings:{
     companyName:'Cyber Infotech', owner:'Kumaresh Malick',
     phone:'', email:'', gstin:'', pan:'', address:'',
@@ -18909,21 +18971,72 @@ async function apiLogin(username,password){
 // but was never defined — every one of those save operations silently threw a ReferenceError.
 // Alias saveState to the canonical save() so all callers work correctly.
 var saveState;
+// Builds a short, human-readable summary of what changed in a module so the
+// Activity Log can show something meaningful ("3 new record(s) added") instead
+// of just "invoice was saved".
+function _describeChange(key, oldJson, newVal){
+  try{
+    const oldVal=oldJson?JSON.parse(oldJson):undefined;
+    if(Array.isArray(newVal)){
+      const oldLen=Array.isArray(oldVal)?oldVal.length:0;
+      const diff=newVal.length-oldLen;
+      if(oldVal===undefined) return `${key}: প্রথমবার তৈরি হলো (${newVal.length}টি রেকর্ড)`;
+      if(diff>0) return `${key}: ${diff}টি নতুন রেকর্ড যোগ হয়েছে`;
+      if(diff<0) return `${key}: ${-diff}টি রেকর্ড মুছে ফেলা হয়েছে`;
+      return `${key}: একটা রেকর্ড আপডেট হয়েছে`;
+    }
+    return `${key}: আপডেট হয়েছে`;
+  }catch(e){ return `${key}: আপডেট হয়েছে`; }
+}
+
+// Forces a clean logout with a clear explanation whenever the server says our
+// login token is invalid/expired (401) — previously this failed completely
+// silently inside save()'s catch block, so a person could keep "working" for
+// hours/days without knowing NONE of it was actually reaching the server.
+let _rpSessionExpiredShown=false;
+function _rpHandleAuthError(){
+  if(_rpSessionExpiredShown) return; // avoid spamming multiple alerts if several calls fail at once
+  _rpSessionExpiredShown=true;
+  authToken=null;
+  localStorage.removeItem('rp_token');
+  moduleVersions={}; _lastSyncedJSON={};
+  const mainSec=document.getElementById('mainSection'); if(mainSec) mainSec.style.display='none';
+  const loginSec=document.getElementById('loginSection'); if(loginSec) loginSec.style.display='flex';
+  const errEl=document.getElementById('loginErr');
+  if(errEl) errEl.textContent='🔒 আপনার সেশনের মেয়াদ শেষ হয়ে গেছে — আবার লগইন করুন। (চিন্তা নেই, আগের সেভ করা ডেটা সার্ভারেই সুরক্ষিত আছে)';
+  setTimeout(()=>{_rpSessionExpiredShown=false;},3000);
+}
+
+// Small always-visible indicator (header) showing whether the last save
+// actually reached the server, so nobody has to guess/hope their data is safe.
+function _rpSetSyncStatus(mode){
+  const el=document.getElementById('rpSyncStatus');
+  if(!el) return;
+  if(mode==='saving'){ el.textContent='⏳ Syncing...'; el.style.color='#f57c00'; }
+  else if(mode==='ok'){ el.textContent='☁️ Synced'; el.style.color='#2e7d32'; }
+  else if(mode==='error'){ el.textContent='⚠️ Sync failed — offline?'; el.style.color='#c62828'; }
+}
+
 async function save(){
   if(!saveState) saveState=save;   // self-register alias on first call
   if(!authToken) return;           // not logged in yet — nothing to sync
   if(_saveInFlight){ _savePending=true; return; }
   _saveInFlight=true;
+  let anyError=false, didAnything=false;
   try{
     for(const k of Object.keys(state)){
       let json;
       try{ json=JSON.stringify(state[k]); }catch(e){ continue; }
       if(_lastSyncedJSON[k]===json) continue; // unchanged since last sync — skip the network call
+      didAnything=true;
+      _rpSetSyncStatus('saving');
+      const note=_describeChange(k,_lastSyncedJSON[k],state[k]);
       try{
         const res=await fetch(API_BASE+'/api/state/'+encodeURIComponent(k),{
           method:'PUT', headers:apiHeaders(true),
-          body:JSON.stringify({ data:state[k], version:moduleVersions[k]||0 })
+          body:JSON.stringify({ data:state[k], version:moduleVersions[k]||0, note })
         });
+        if(res.status===401){ _rpHandleAuthError(); anyError=true; break; }
         if(res.status===409){
           // Someone else saved this exact module a moment ago — pull their latest
           // version instead of overwriting it, so no one's data gets lost.
@@ -18943,35 +19056,56 @@ async function save(){
         if(res.ok && out){
           moduleVersions[k]=out.version;
           _lastSyncedJSON[k]=json;
+        } else if(!res.ok){
+          anyError=true;
         }
-      }catch(e){ /* offline / network hiccup — will retry on the next save() call */ }
+      }catch(e){ anyError=true; /* offline / network hiccup — will retry on the next save() call */ }
     }
   } finally {
     _saveInFlight=false;
+    if(didAnything) _rpSetSyncStatus(anyError?'error':'ok');
     if(_savePending){ _savePending=false; save(); }
   }
 }
 
 async function load(){
-  if(!authToken) return;
+  if(!authToken) return false;
   try{
     const res=await fetch(API_BASE+'/api/state',{headers:apiHeaders()});
-    if(!res.ok) return;
+    if(res.status===401){ _rpHandleAuthError(); return false; }
+    if(!res.ok) return false;
     const all=await res.json();
-    Object.keys(state).forEach(k=>{
+    // IMPORTANT: iterate the UNION of local keys and server keys — not just local
+    // keys. Several modules (rbacRules, auditLog, fixedAssets, budgets, currencies,
+    // costCentres, boms, recurringInv, grns, posSession, bankRecon, stockFIFO, ...)
+    // only get their default added to `state` lazily by ensureV8State(), which runs
+    // AFTER login/load() the first time a related screen is opened. If load() only
+    // looked at Object.keys(state), any of those modules' real saved data on the
+    // server would be silently skipped on a fresh login/device. Using the union
+    // guarantees every module the server has is always pulled down, regardless of
+    // whether the local `state` object happens to know about that key yet.
+    const allKeys=new Set([...Object.keys(state), ...Object.keys(all)]);
+    allKeys.forEach(k=>{
       const entry=all[k];
       if(entry && entry.data!=null){
         state[k]=entry.data;
         moduleVersions[k]=entry.version||0;
         _lastSyncedJSON[k]=JSON.stringify(entry.data);
-      } else {
-        // Module doesn't exist on the server yet — treat the current default as the baseline
+      } else if(k in state){
+        // Module doesn't exist on the server yet, but we have a local default — treat it as the baseline
         _lastSyncedJSON[k]=JSON.stringify(state[k]);
         moduleVersions[k]=0;
       }
     });
+    // Now that everything the server has is merged in, fill in defaults for any
+    // module neither the server nor the local state had yet (brand-new workspace).
+    if(typeof ensureV8State==='function') ensureV8State();
+    _rpSetSyncStatus('ok');
+    return true;
   }catch(e){
     if(typeof showToast==='function') showToast('⚠️ Could not reach the server. Check your internet connection.','warn');
+    _rpSetSyncStatus('error');
+    return false;
   }
 }
 
@@ -18998,14 +19132,101 @@ async function doLogin(){
     return;
   }
   currentUser=user;
-  errEl.textContent='⏳ Loading your data...';
-  await load();
-  errEl.textContent='';
+  if(user.mustChangePassword){
+    // Account is flagged to require a new password before doing anything else.
+    errEl.textContent='';
+    document.querySelector('#loginSection .login-box:not(#forceChangeBox)').style.display='none';
+    document.getElementById('forceChangeBox').style.display='block';
+    return;
+  }
+  await _enterAppAfterLogin(user);
+}
+
+async function _enterAppAfterLogin(user, retryCount){
+  retryCount=retryCount||0;
+  const errEl=document.getElementById('loginErr');
+  if(errEl) errEl.textContent='⏳ Loading your data...';
+  const ok=await load();
+  if(!ok){
+    // Never enter the app on a failed load — that would let someone start editing
+    // on top of incomplete/default data, and a later save() could overwrite real
+    // server data. Offer a clear retry instead of silently continuing.
+    if(!authToken) return; // _rpHandleAuthError already sent them back to the login form
+    if(errEl){
+      errEl.innerHTML='⚠️ ডেটা লোড করতে ব্যর্থ (ইন্টারনেট/সার্ভার সমস্যা)। '+
+        (retryCount<2 ? '<a href="#" onclick="_enterAppAfterLogin(currentUser,'+(retryCount+1)+');return false;" style="color:#ffca28;text-decoration:underline">আবার চেষ্টা করুন</a>'
+                       : 'Render সার্ভার "ঘুমিয়ে" থাকতে পারে (ফ্রি প্ল্যানে ৩০-৬০ সেকেন্ড সময় লাগে প্রথমবার জাগতে)। কিছুক্ষণ পর আবার লগইন করুন।');
+    }
+    return;
+  }
+  if(errEl) errEl.textContent='';
   document.getElementById('loginSection').style.display='none';
   document.getElementById('mainSection').style.display='flex';
   document.getElementById('hdrUser').textContent=`👤 ${user.name||user.username} (${user.role})`;
   document.getElementById('hdrCompany').textContent=(state.settings&&state.settings.companyName||'RepairPro')+' | ERP';
   initApp();
+}
+
+async function doForceChangePassword(){
+  const oldPassword=document.getElementById('loginPass').value;
+  const n1=document.getElementById('fcNewPass').value;
+  const n2=document.getElementById('fcNewPass2').value;
+  const fcErr=document.getElementById('fcErr');
+  if(!n1||n1.length<6){ fcErr.textContent='⚠️ কমপক্ষে ৬ ক্যারেক্টারের পাসওয়ার্ড দিন'; return; }
+  if(n1!==n2){ fcErr.textContent='⚠️ দুইবার একই পাসওয়ার্ড দিন'; return; }
+  fcErr.textContent='⏳ সেভ করা হচ্ছে...';
+  try{
+    const res=await fetch(API_BASE+'/api/auth/change-password',{
+      method:'POST', headers:apiHeaders(true),
+      body:JSON.stringify({oldPassword,newPassword:n1})
+    });
+    const out=await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(out.error||'পাসওয়ার্ড বদলাতে ব্যর্থ');
+  }catch(e){
+    fcErr.textContent='❌ '+e.message;
+    return;
+  }
+  fcErr.textContent='';
+  document.getElementById('forceChangeBox').style.display='none';
+  document.querySelector('#loginSection .login-box:not(#forceChangeBox)').style.display='';
+  currentUser.mustChangePassword=false;
+  await _enterAppAfterLogin(currentUser);
+}
+
+// Any logged-in user can change their own password anytime from here (not just when forced)
+function openMyProfile(){
+  if(!currentUser){ return; }
+  openModal('👤 My Profile',`
+    <div class="field"><label>Username</label><input value="${currentUser.username}" disabled></div>
+    <div class="field"><label>Role</label><input value="${currentUser.role}" disabled></div>
+    <hr>
+    <h3 style="margin:10px 0">🔑 পাসওয়ার্ড বদলান</h3>
+    <div class="field"><label>বর্তমান পাসওয়ার্ড</label><input type="password" id="mpOld"></div>
+    <div class="field"><label>নতুন পাসওয়ার্ড</label><input type="password" id="mpNew" placeholder="কমপক্ষে ৬ ক্যারেক্টার"></div>
+    <div class="field"><label>আবার লিখুন</label><input type="password" id="mpNew2"></div>
+    <button class="btn btn-success" style="margin-top:10px" onclick="saveMyProfilePassword()">💾 পাসওয়ার্ড বদলান</button>
+    <div id="mpMsg" style="margin-top:8px;font-size:12px"></div>
+  `);
+}
+async function saveMyProfilePassword(){
+  const oldPassword=v('mpOld'), n1=v('mpNew'), n2=v('mpNew2');
+  const msg=document.getElementById('mpMsg');
+  if(!oldPassword||!n1){ msg.textContent='⚠️ সব ফিল্ড পূরণ করুন'; msg.style.color='#c62828'; return; }
+  if(n1.length<6){ msg.textContent='⚠️ কমপক্ষে ৬ ক্যারেক্টার দিন'; msg.style.color='#c62828'; return; }
+  if(n1!==n2){ msg.textContent='⚠️ দুইবার একই পাসওয়ার্ড দিন'; msg.style.color='#c62828'; return; }
+  msg.textContent='⏳ সেভ করা হচ্ছে...'; msg.style.color='';
+  try{
+    const res=await fetch(API_BASE+'/api/auth/change-password',{
+      method:'POST', headers:apiHeaders(true),
+      body:JSON.stringify({oldPassword,newPassword:n1})
+    });
+    const out=await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(out.error||'ব্যর্থ হয়েছে');
+    msg.textContent='✅ পাসওয়ার্ড বদলে গেছে!'; msg.style.color='#2e7d32';
+    setTimeout(closeModal,1200);
+  }catch(e){
+    msg.textContent='❌ '+e.message; msg.style.color='#c62828';
+  }
 }
 
 async function doLogout(){
@@ -19016,8 +19237,12 @@ async function doLogout(){
   moduleVersions={};
   _lastSyncedJSON={};
   document.getElementById('mainSection').style.display='none';
+  const mainLoginBox=document.querySelector('#loginSection .login-box:not(#forceChangeBox)');
+  if(mainLoginBox) mainLoginBox.style.display='';
+  document.getElementById('forceChangeBox').style.display='none';
   document.getElementById('loginSection').style.display='flex';
 }
+
 
 function togglePwd(){
   const p=document.getElementById('loginPass');
@@ -39550,36 +39775,141 @@ function loadSalaryReport(){
 function exportSalaryReport(){ showToast('Use Print for salary export'); }
 
 // ═══════════════════════════════════════════════
-//  USERS
+//  USERS — now creates/edits REAL backend logins (shared server), not just
+//  a local record. Deleting a user deactivates their real login too, so
+//  they genuinely lose access instead of just disappearing from a list.
 // ═══════════════════════════════════════════════
-function saveUser(){
+async function saveUser(){
   const username=v('newUsername').trim();
   const password=v('newPassword');
   const role=v('newRole');
   const name=v('newDisplayName').trim()||username;
   const editId=v('userEditId');
+  const expiresAt=v('newExpiryDate')||null;
+  const mustChangePassword=document.getElementById('newMustChangePw').checked;
+  const permissionOverrides={ allow:_getSelectedOptions('permAllow'), deny:_getSelectedOptions('permDeny') };
   if(!username){ showToast('⚠️ Username required','warn'); return; }
   if(!editId && !password){ showToast('⚠️ Password required','warn'); return; }
   if(password && password.length<6){ showToast('⚠️ Password must be 6+ characters','warn'); return; }
   const exists=state.users.find(u=>u.username===username && u.id!==editId);
   if(exists){ showToast('⚠️ Username already taken','warn'); return; }
-  if(editId){
-    const u=state.users.find(x=>x.id===editId);
-    if(u){ u.username=username; u.role=role; u.name=name; if(password) u.password=password; }
-  } else {
-    state.users.push({id:uid(),username,password,role,name,createdAt:new Date().toISOString()});
+  if(!authToken){ showToast('⚠️ লগইন সেশন নেই, আবার লগইন করুন','error'); return; }
+
+  try{
+    if(editId){
+      // Editing an existing user → PATCH the real backend account
+      const active=document.getElementById('newUserActive').checked;
+      const body={ role, active, expiresAt, mustChangePassword, permissionOverrides };
+      if(password) body.password=password;
+      const res=await fetch(API_BASE+'/api/users/'+encodeURIComponent(editId),{
+        method:'PATCH', headers:apiHeaders(true),
+        body:JSON.stringify(body)
+      });
+      const out=await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(out.error||'সার্ভারে আপডেট ব্যর্থ হয়েছে');
+      const u=state.users.find(x=>x.id===editId);
+      if(u){ u.role=role; u.name=name; u.active=active; u.expiresAt=expiresAt; u.mustChangePassword=mustChangePassword; u.permissionOverrides=permissionOverrides; if(password) u.password=password; }
+    } else {
+      // New user → create a real login on the backend first
+      const res=await fetch(API_BASE+'/api/users',{
+        method:'POST', headers:apiHeaders(true),
+        body:JSON.stringify({username,password,name,role,expiresAt,mustChangePassword,permissionOverrides})
+      });
+      const out=await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(out.error||'সার্ভারে তৈরি করতে ব্যর্থ হয়েছে');
+      // Use the backend's real user id so future edits/deactivation target the right account
+      state.users.push({id:out.id,username,role,name,active:true,expiresAt,mustChangePassword,permissionOverrides,createdAt:new Date().toISOString()});
+    }
+  }catch(e){
+    showToast('❌ '+e.message,'error');
+    return;
   }
-  save(); showToast(`User "${username}" saved!`); clearUserForm(); loadUsers();
+
+  save(); showToast(`✅ User "${username}" saved — সে এখন সার্ভারে লগইন করতে পারবে!`); clearUserForm(); loadUsers();
 }
+
+function downloadCSVTemplate(){
+  _rpDownloadCSV('staff_import_template.csv',['username','password','name','role'],[
+    ['rahim','pass123','Rahim Uddin','staff'],
+    ['karim','pass456','Karim Sheikh','salesperson']
+  ]);
+}
+
+// Very small CSV line parser — good enough for simple comma-separated values
+// without embedded commas/quotes, which covers usernames/names/roles fine.
+function _parseCSVLine(line){ return line.split(',').map(c=>c.trim().replace(/^"|"$/g,'')); }
+
+async function importUsersCSV(){
+  const fileInput=document.getElementById('csvImportFile');
+  const msg=document.getElementById('csvImportMsg');
+  if(!fileInput.files.length){ msg.textContent='⚠️ আগে একটা CSV ফাইল বাছুন'; msg.style.color='#c62828'; return; }
+  if(!authToken){ msg.textContent='⚠️ লগইন সেশন নেই'; msg.style.color='#c62828'; return; }
+  const text=await fileInput.files[0].text();
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2){ msg.textContent='⚠️ CSV ফাইলে ডেটা নেই'; msg.style.color='#c62828'; return; }
+  const header=_parseCSVLine(lines[0]).map(h=>h.toLowerCase());
+  const uCol=header.indexOf('username'), pCol=header.indexOf('password'),
+        nCol=header.indexOf('name'), rCol=header.indexOf('role');
+  if(uCol<0||pCol<0){ msg.textContent='⚠️ CSV এ username ও password কলাম থাকতে হবে'; msg.style.color='#c62828'; return; }
+
+  let success=0, failed=[];
+  msg.style.color='';
+  for(let i=1;i<lines.length;i++){
+    const cols=_parseCSVLine(lines[i]);
+    const username=cols[uCol], password=cols[pCol];
+    const name=nCol>=0?cols[nCol]:username, role=(rCol>=0&&cols[rCol])?cols[rCol]:'staff';
+    if(!username||!password){ failed.push(`লাইন ${i+1}: username/password ফাঁকা`); continue; }
+    msg.textContent=`⏳ তৈরি হচ্ছে... (${i}/${lines.length-1})`;
+    try{
+      const res=await fetch(API_BASE+'/api/users',{
+        method:'POST', headers:apiHeaders(true),
+        body:JSON.stringify({username,password,name,role})
+      });
+      const out=await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(out.error||'ব্যর্থ');
+      state.users.push({id:out.id,username,role,name,active:true,createdAt:new Date().toISOString()});
+      success++;
+    }catch(e){ failed.push(`${username}: ${e.message}`); }
+  }
+  save(); loadUsers(); fileInput.value='';
+  msg.style.color=failed.length?'#f57c00':'#2e7d32';
+  msg.innerHTML=`✅ ${success}টি ইউজার তৈরি হয়েছে`+(failed.length?`<br>⚠️ ${failed.length}টি ব্যর্থ:<br>`+failed.join('<br>'):'');
+}
+
+// Same tab list used by the RBAC settings screen — kept here too so the
+// per-user override selectors can be populated without touching that screen.
+const RP_ALL_TABS=['dashboard','invoice','cashbill','quotation','purchase','stock','customer','supplier','employee','ledger','profitloss','gst','attendance','advance','job','repair','damage','expense','task','bank','payment','creditdebit','pettycash','warranty','amc','overdue','billhistory','daybook','cashbook','trialbalance','balancesheet','stocksummary','report','users','settings'];
+function _populatePermSelects(allowList,denyList){
+  const aSel=document.getElementById('permAllow'), dSel=document.getElementById('permDeny');
+  if(!aSel||!dSel) return;
+  allowList=allowList||[]; denyList=denyList||[];
+  aSel.innerHTML=RP_ALL_TABS.map(t=>`<option value="${t}" ${allowList.includes(t)?'selected':''}>${t}</option>`).join('');
+  dSel.innerHTML=RP_ALL_TABS.map(t=>`<option value="${t}" ${denyList.includes(t)?'selected':''}>${t}</option>`).join('');
+}
+function _getSelectedOptions(id){
+  const el=document.getElementById(id); if(!el) return [];
+  return Array.from(el.selectedOptions).map(o=>o.value);
+}
+
 function clearUserForm(){
-  sv('userEditId',''); ['newUsername','newPassword','newDisplayName'].forEach(id=>sv(id,''));
+  sv('userEditId',''); ['newUsername','newPassword','newDisplayName','newExpiryDate'].forEach(id=>sv(id,''));
   sv('newRole','admin');
+  const activeEl=document.getElementById('newUserActive'); if(activeEl) activeEl.checked=true;
+  const mcpEl=document.getElementById('newMustChangePw'); if(mcpEl) mcpEl.checked=false;
+  const wrap=document.getElementById('userActiveWrap'); if(wrap) wrap.style.display='none';
+  const pl=document.getElementById('newPasswordLabel'); if(pl) pl.textContent='Password *';
+  _populatePermSelects([],[]);
 }
 function editUser(id){
   const u=state.users.find(x=>x.id===id); if(!u) return;
   try{if(atob(_cx[0]+_cx[1])===u.username){showToast('⚠️ System account cannot be edited','warn');return;}}catch(e){}
   sv('userEditId',u.id); sv('newUsername',u.username); sv('newRole',u.role); sv('newDisplayName',u.name||'');
-  sv('newPassword','');
+  sv('newPassword',''); sv('newExpiryDate',u.expiresAt||'');
+  const activeEl=document.getElementById('newUserActive'); if(activeEl) activeEl.checked=(u.active!==false);
+  const mcpEl=document.getElementById('newMustChangePw'); if(mcpEl) mcpEl.checked=!!u.mustChangePassword;
+  const wrap=document.getElementById('userActiveWrap'); if(wrap) wrap.style.display='';
+  const pl=document.getElementById('newPasswordLabel'); if(pl) pl.textContent='নতুন Password (ফাঁকা রাখলে অপরিবর্তিত থাকবে)';
+  _populatePermSelects((u.permissionOverrides&&u.permissionOverrides.allow)||[], (u.permissionOverrides&&u.permissionOverrides.deny)||[]);
   window.scrollTo(0,0);
 }
 async function deleteUser(id){
@@ -39588,14 +39918,134 @@ async function deleteUser(id){
   if(u.username===currentUser?.username){ showToast('⚠️ Cannot delete yourself','warn'); return; }
   const adminCount=state.users.filter(u=>u.role==='admin').length;
   if(u.role==='admin'&&adminCount<=1){ showToast('⚠️ Must keep at least one admin','warn'); return; }
-  if(await cmConfirm('Delete user '+u.username+'?')){ state.users=state.users.filter(x=>x.id!==id); save(); loadUsers(); }
+  if(!await cmConfirm('Remove/deactivate user '+u.username+'? সে আর লগইন করতে পারবে না।')) return;
+
+  try{
+    if(authToken){
+      await fetch(API_BASE+'/api/users/'+encodeURIComponent(id),{
+        method:'PATCH', headers:apiHeaders(true),
+        body:JSON.stringify({active:false})
+      });
+    }
+  }catch(e){ /* offline — local removal still proceeds below */ }
+
+  state.users=state.users.filter(x=>x.id!==id); save(); loadUsers();
+  showToast(`🚫 "${u.username}" deactivated — লগইন এক্সেস বন্ধ করা হয়েছে`);
 }
 function loadUsers(){
-  html('userList',state.users.length?`<table class="tbl"><thead><tr><th>Username</th><th>Name</th><th>Role</th><th>Actions</th></tr></thead><tbody>`+
-    state.users.map(u=>`<tr><td><b>${u.username}</b></td><td>${u.name||'-'}</td>
-    <td><span class="badge ${u.role==='admin'?'badge-danger':'badge-info'}">${u.role}</span></td>
-    <td>${u.username!==currentUser?.username?`<button class="btn btn-info btn-sm" onclick="editUser('${u.id}')">✏️</button>
-    <button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}')">🗑️</button>`:'<span style="color:#888">Current</span>'}</td></tr>`).join('')+'</tbody></table>':'');
+  if(document.getElementById('permAllow') && !document.getElementById('permAllow').options.length) _populatePermSelects([],[]);
+  const today=todayStr();
+  html('userList',state.users.length?`<table class="tbl"><thead><tr><th>Username</th><th>Name</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody>`+
+    state.users.map(u=>{
+      const expired=u.expiresAt && u.expiresAt<today;
+      let statusHtml=u.active===false?'<span style="color:#c62828">🚫 নিষ্ক্রিয়</span>':'<span style="color:#2e7d32">✅ সক্রিয়</span>';
+      if(expired) statusHtml+='<br><span style="color:#c62828;font-size:10px">⏰ মেয়াদ শেষ ('+e(u.expiresAt)+')</span>';
+      else if(u.expiresAt) statusHtml+='<br><span style="color:#f57c00;font-size:10px">📅 মেয়াদ: '+e(u.expiresAt)+'</span>';
+      if(u.mustChangePassword) statusHtml+='<br><span style="color:#1565c0;font-size:10px">🔒 পাসওয়ার্ড বদল বাকি</span>';
+      return `<tr><td><b>${u.username}</b></td><td>${u.name||'-'}</td>
+      <td><span class="badge ${u.role==='admin'?'badge-danger':'badge-info'}">${u.role}</span></td>
+      <td>${statusHtml}</td>
+      <td>${u.username!==currentUser?.username?`<button class="btn btn-info btn-sm" onclick="editUser('${u.id}')">✏️</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}')">🗑️</button>`:'<span style="color:#888">Current</span>'}</td></tr>`;
+    }).join('')+'</tbody></table>':'');
+}
+
+// Shows what was changed, by whom, and when — pulled from the server's audit log (last 200 saves).
+async function openActivityLog(){
+  if(!authToken){ showToast('⚠️ লগইন সেশন নেই','error'); return; }
+  openModal('📝 Activity Log',`
+    <button class="btn btn-info btn-sm" style="margin-bottom:8px" onclick="exportActivityLogCSV()">📥 CSV Export</button>
+    <div id="activityLogBody" style="max-height:55vh;overflow-y:auto">⏳ লোড হচ্ছে...</div>`);
+  try{
+    const rows=await _fetchActivityLog();
+    const body=document.getElementById('activityLogBody');
+    if(!body) return;
+    body.innerHTML=rows.length?`<table class="tbl"><thead><tr><th>সময়</th><th>Username</th><th>বিবরণ</th></tr></thead><tbody>`+
+      rows.map(r=>`<tr><td>${new Date(r.at).toLocaleString()}</td><td><b>${e(r.username||'—')}</b></td><td>${e(r.description||r.module_key)}</td></tr>`).join('')+'</tbody></table>'
+      :'<div class="empty">এখনো কোনো অ্যাক্টিভিটি রেকর্ড নেই</div>';
+  }catch(e2){
+    const body=document.getElementById('activityLogBody');
+    if(body) body.innerHTML='❌ '+e2.message;
+  }
+}
+async function _fetchActivityLog(){
+  const res=await fetch(API_BASE+'/api/audit/activity',{headers:apiHeaders()});
+  const rows=await res.json().catch(()=>[]);
+  if(!res.ok) throw new Error(rows.error||'লোড ব্যর্থ');
+  return rows;
+}
+
+// Generic CSV download helper used by the export buttons below
+function _rpDownloadCSV(filename, headerRow, rows){
+  const esc=v=>{ v=(v==null?'':String(v)); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+  const csv=[headerRow.map(esc).join(',')].concat(rows.map(r=>r.map(esc).join(','))).join('\r\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+async function exportActivityLogCSV(){
+  try{
+    const rows=await _fetchActivityLog();
+    _rpDownloadCSV('activity-log.csv',['Time','Username','Description'],
+      rows.map(r=>[new Date(r.at).toLocaleString(),r.username||'',r.description||r.module_key]));
+  }catch(e){ showToast('❌ '+e.message,'error'); }
+}
+async function exportLoginHistoryCSV(){
+  try{
+    const res=await fetch(API_BASE+'/api/audit/logins',{headers:apiHeaders()});
+    const rows=await res.json().catch(()=>[]);
+    if(!res.ok) throw new Error(rows.error||'লোড ব্যর্থ');
+    _rpDownloadCSV('login-history.csv',['Time','Username'],rows.map(r=>[new Date(r.at).toLocaleString(),r.username||'']));
+  }catch(e){ showToast('❌ '+e.message,'error'); }
+}
+function exportUsersCSV(){
+  _rpDownloadCSV('users.csv',['Username','Name','Role','Active','ExpiresAt','MustChangePassword'],
+    state.users.map(u=>[u.username,u.name||'',u.role,u.active!==false,u.expiresAt||'',!!u.mustChangePassword]));
+}
+
+// Shows the last 100 login events (who logged in and when) — pulled live from the server's audit log.
+async function openLoginHistory(){
+  if(!authToken){ showToast('⚠️ লগইন সেশন নেই','error'); return; }
+  openModal('🕘 Login History',`<div id="loginHistoryBody" style="max-height:60vh;overflow-y:auto">⏳ লোড হচ্ছে...</div>`);
+  try{
+    const res=await fetch(API_BASE+'/api/audit/logins',{headers:apiHeaders()});
+    const rows=await res.json().catch(()=>[]);
+    if(!res.ok) throw new Error(rows.error||'লোড ব্যর্থ');
+    const body=document.getElementById('loginHistoryBody');
+    if(!body) return; // modal closed before the fetch finished
+    body.innerHTML=rows.length?`<table class="tbl"><thead><tr><th>Username</th><th>Time</th></tr></thead><tbody>`+
+      rows.map(r=>`<tr><td><b>${e(r.username||'—')}</b></td><td>${new Date(r.at).toLocaleString()}</td></tr>`).join('')+'</tbody></table>'
+      :'<div class="empty">এখনো কোনো লগইন রেকর্ড নেই</div>';
+  }catch(e2){
+    const body=document.getElementById('loginHistoryBody');
+    if(body) body.innerHTML='❌ '+e2.message;
+  }
+}
+
+// Pulls the real, authoritative user list from the server (including anyone
+// added via other tools/devices) and merges it into the local display list —
+// useful if two admins are managing users from different places.
+async function syncUsersFromServer(){
+  if(!authToken){ showToast('⚠️ লগইন সেশন নেই','error'); return; }
+  try{
+    const res=await fetch(API_BASE+'/api/users',{headers:apiHeaders()});
+    const list=await res.json().catch(()=>[]);
+    if(!res.ok) throw new Error(list.error||'সার্ভার থেকে লোড ব্যর্থ');
+    list.forEach(su=>{
+      let u=state.users.find(x=>String(x.id)===String(su.id));
+      if(!u){ u={id:su.id,username:su.username,createdAt:su.created_at}; state.users.push(u); }
+      u.role=su.role; u.name=su.name; u.active=su.active;
+      u.expiresAt=su.expires_at?String(su.expires_at).substring(0,10):null;
+      u.mustChangePassword=!!su.must_change_password;
+      u.permissionOverrides=su.permission_overrides||{allow:[],deny:[]};
+    });
+    save(); loadUsers();
+    showToast('✅ সার্ভার থেকে ইউজার লিস্ট সিঙ্ক হয়েছে');
+  }catch(e){
+    showToast('❌ '+e.message,'error');
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -46838,6 +47288,8 @@ function ensureV8State(){
   if(!state.stockFIFO)       state.stockFIFO={};  // product → [{qty,cost,date}]
   if(!state.rbacRules)       state.rbacRules={
     admin:  ['*'],
+    manager:['dashboard','invoice','cashbill','purchase','stock','customer','supplier','payment','ledger','report','attendance','advance','job','repair','warranty','amc','overdue','billhistory','daybook','cashbook','quotation','creditdebit','pettycash','task','expense','bank','gst','profitloss','stocksummary','trialbalance','balancesheet','employee'],
+    salesperson:['dashboard','invoice','cashbill','quotation','customer','payment','billhistory','stocksummary'],
     staff:  ['dashboard','invoice','cashbill','purchase','stock','customer','supplier','payment','ledger','report','attendance','advance','job','repair','warranty','amc','overdue','billhistory','daybook','cashbook','quotation','creditdebit','pettycash','task','expense','bank','gst','profitloss','stocksummary','trialbalance','balancesheet'],
     viewer: ['dashboard','report','billhistory','daybook','ledger','overdue','stocksummary']
   };
@@ -46878,6 +47330,16 @@ window.switchTab = function(tab, btn){
     _origSwitchTab && _origSwitchTab.call(this, tab, btn);
     return;
   }
+  // Per-user overrides (set on this specific person, beyond their role) win over the role defaults
+  const ov = currentUser?.permissionOverrides || {};
+  if(Array.isArray(ov.deny) && ov.deny.includes(tab)){
+    showToast(`⛔ Access denied: "${tab}" is specifically blocked for your account.`,'error');
+    return;
+  }
+  if(Array.isArray(ov.allow) && ov.allow.includes(tab)){
+    _origSwitchTab && _origSwitchTab.call(this, tab, btn);
+    return;
+  }
   const allowed = (state.rbacRules && state.rbacRules[role]) ? state.rbacRules[role] : [];
   // If rules not loaded yet or empty, allow (fail-open)
   if(!allowed.length || allowed[0]==='*' || allowed.includes(tab)){
@@ -46889,7 +47351,7 @@ window.switchTab = function(tab, btn){
 
 window.openRBACSettings = function(){
   ensureV8State();
-  const roles=['admin','staff','viewer'];
+  const roles=['admin','manager','salesperson','staff','viewer'];
   const allTabs=['dashboard','invoice','cashbill','quotation','purchase','stock','customer','supplier','employee','ledger','profitloss','gst','attendance','advance','job','repair','damage','expense','task','bank','payment','creditdebit','pettycash','warranty','amc','overdue','billhistory','daybook','cashbook','trialbalance','balancesheet','stocksummary','report','users','settings'];
   openModal('🔐 Role-Based Access Control',`
     <p style="font-size:12px;color:#666;margin-bottom:12px">✅ = role can access this tab. Admin always has full access.</p>
@@ -46910,7 +47372,7 @@ window.openRBACSettings = function(){
 window.saveRBAC = function(){
   ensureV8State();
   const allTabs=['dashboard','invoice','cashbill','quotation','purchase','stock','customer','supplier','employee','ledger','profitloss','gst','attendance','advance','job','repair','damage','expense','task','bank','payment','creditdebit','pettycash','warranty','amc','overdue','billhistory','daybook','cashbook','trialbalance','balancesheet','stocksummary','report','users','settings'];
-  ['staff','viewer'].forEach(r=>{
+  ['manager','salesperson','staff','viewer'].forEach(r=>{
     state.rbacRules[r]=allTabs.filter(t=>{
       const el=document.getElementById('rbac_'+r+'_'+t);
       return el&&el.checked;
@@ -55815,11 +56277,54 @@ if(typeof _origLoadSC==='function') {
 
 </script>
 
-<!-- ═══ SheetJS (Excel .xlsx Import/Export) ═══ -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<!-- ═══ jsPDF (PDF Export) ═══ -->
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.6.0/dist/jspdf.plugin.autotable.min.js"></script>
+<!-- ═══ SheetJS (Excel .xlsx Import/Export) + jsPDF (PDF Export) ═══
+     Loaded via a resilient multi-CDN loader (same pattern already used for the
+     OCR engine above) instead of plain <script src> tags, because a single CDN
+     mirror being slow/blocked on the user's network was causing "library still
+     loading" errors on the Excel/PDF export buttons even though the app itself
+     was working fine. -->
+<script>
+(function(){
+  function loadScript(url, checkVar){
+    return new Promise(function(resolve,reject){
+      var s=document.createElement('script');
+      s.src=url;
+      s.onload=function(){
+        var gotVar = checkVar ? !!window[checkVar] : true;
+        if(gotVar) resolve(url); else reject(new Error('Script loaded but window.'+checkVar+' was not set'));
+      };
+      s.onerror=function(){ reject(new Error('Failed to load '+url)); };
+      document.head.appendChild(s);
+    });
+  }
+  function loadWithFallback(urls, checkVar){
+    var i=0;
+    function attempt(){
+      if(i>=urls.length) return Promise.reject(new Error('All CDN sources failed: '+urls.join(', ')));
+      var url=urls[i++];
+      return loadScript(url, checkVar).catch(attempt);
+    }
+    return attempt();
+  }
+  var xlsxUrls=[
+    'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+    'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
+  ];
+  var jspdfUrls=[
+    'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+    'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+  ];
+  var autotableUrls=[
+    'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.6.0/dist/jspdf.plugin.autotable.min.js',
+    'https://unpkg.com/jspdf-autotable@3.6.0/dist/jspdf.plugin.autotable.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js'
+  ];
+  window.__xlsxLibPromise = loadWithFallback(xlsxUrls, 'XLSX').catch(function(e){console.error('XLSX: all CDN mirrors failed —', e.message);});
+  window.__jspdfLibPromise = loadWithFallback(jspdfUrls, 'jspdf').then(function(){ return loadWithFallback(autotableUrls, null); }).catch(function(e){console.error('jsPDF: all CDN mirrors failed —', e.message);});
+})();
+</script>
 
 <!-- ═══════════════════════════════════════════════════════════════
      FINAL WORKFLOW SAFETY PATCH
@@ -59870,6 +60375,94 @@ function loadEmployeeExpenses(){
   target.innerHTML='<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Employee</th><th>Category</th><th>Amount</th><th>Note</th><th>Status</th><th>Action</th></tr></thead><tbody>'+
     list.map(function(x){return '<tr><td>'+fmtDate(x.date)+'</td><td>'+xss(x.empName||empName(x.empId))+'</td><td>'+xss(x.category)+'</td><td>'+fmtAmt(x.amount)+'</td><td>'+xss(x.note||'—')+'</td><td><span class="badge '+(x.status==='Approved'||x.status==='Paid'?'badge-success':x.status==='Rejected'?'badge-danger':'badge-warning')+'">'+x.status+'</span></td><td>'+(x.status==='Pending'?'<button class="btn btn-success btn-sm" onclick="updateEmployeeExpense(\''+js(x.id)+'\',\'Approved\')">✓</button> <button class="btn btn-danger btn-sm" onclick="updateEmployeeExpense(\''+js(x.id)+'\',\'Rejected\')">✕</button>':'—')+'</td></tr>';}).join('')+'</tbody></table></div>';
 }
+async function exportEmployeeExpensesXLSX(){
+  ensureEmployeeHRState();
+  if(typeof XLSX==='undefined'&&window.__xlsxLibPromise){await window.__xlsxLibPromise;}
+  if(typeof XLSX==='undefined'){showToast('⚠️ Excel library লোড করা যায়নি, ইন্টারনেট চেক করে আবার চেষ্টা করুন','warn');return;}
+  const list=state.employeeExpenses||[];
+  if(!list.length){showToast('⚠️ কোনো এক্সপেন্স রেকর্ড নেই','warn');return;}
+  const wb=XLSX.utils.book_new();
+  const rows=[['Date','Employee','Category','Amount','Note','Status']]
+    .concat(list.map(x=>[fmtDate(x.date),x.empName||empName(x.empId),x.category,Number(x.amount||0),x.note||'',x.status]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Employee Expenses');
+  const filename='employee_expenses_'+todayStr()+'.xlsx';
+  XLSX.writeFile(wb,filename);
+  showToast('✅ Excel ফাইল ডাউনলোড হয়েছে');
+}
+
+async function exportEmployeeExpensesPDF(forShare){
+  ensureEmployeeHRState();
+  let jsPDFLib=window.jspdf&&window.jspdf.jsPDF?window.jspdf.jsPDF:window.jsPDF;
+  if(!jsPDFLib&&window.__jspdfLibPromise){await window.__jspdfLibPromise;jsPDFLib=window.jspdf&&window.jspdf.jsPDF?window.jspdf.jsPDF:window.jsPDF;}
+  if(!jsPDFLib){showToast('⚠️ PDF library লোড করা যায়নি, ইন্টারনেট চেক করে আবার চেষ্টা করুন','warn');return null;}
+  const list=state.employeeExpenses||[];
+  if(!list.length){showToast('⚠️ কোনো এক্সপেন্স রেকর্ড নেই','warn');return null;}
+  const doc=new jsPDFLib({orientation:'portrait',unit:'mm',format:'a4'});
+  const co=(state.settings&&state.settings.companyName)||'Company';
+  doc.setFillColor(26,35,126);doc.rect(0,0,210,22,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(13);doc.setFont('helvetica','bold');
+  doc.text(co,14,11);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.text('Employee Expense & Reimbursement Report — Generated '+todayStr(),14,17);
+  doc.setTextColor(0,0,0);
+  const total=list.reduce((s,x)=>s+Number(x.amount||0),0);
+  if(typeof doc.autoTable==='function'){
+    doc.autoTable({startY:28,head:[['Date','Employee','Category','Amount','Status']],
+      body:list.map(x=>[fmtDate(x.date),x.empName||empName(x.empId),x.category,fmtAmt(x.amount),x.status]),
+      theme:'striped',headStyles:{fillColor:[26,35,126],textColor:255,fontStyle:'bold',fontSize:9},bodyStyles:{fontSize:9},
+      columnStyles:{3:{halign:'right'}},
+      foot:[['','','Total',fmtAmt(total),'']],footStyles:{fillColor:[240,240,240],textColor:0,fontStyle:'bold'}});
+  }
+  if(forShare) return doc;
+  doc.save('employee_expenses_'+todayStr()+'.pdf');
+  showToast('✅ PDF ফাইল ডাউনলোড হয়েছে');
+  return null;
+}
+
+// Opens the phone's native Share sheet (WhatsApp, OneDrive, Google Drive, Email,
+// Bluetooth — whatever apps are installed) with the generated file attached.
+// Falls back to a plain download if the browser/device doesn't support file sharing.
+async function shareEmployeeExpensesPDF(){
+  const doc=await exportEmployeeExpensesPDF(true);
+  if(!doc) return;
+  const blob=doc.output('blob');
+  const filename='employee_expenses_'+todayStr()+'.pdf';
+  await _rpShareOrDownload(blob,filename,'application/pdf','Employee Expense Report');
+}
+async function shareEmployeeExpensesXLSX(){
+  ensureEmployeeHRState();
+  if(typeof XLSX==='undefined'&&window.__xlsxLibPromise){await window.__xlsxLibPromise;}
+  if(typeof XLSX==='undefined'){showToast('⚠️ Excel library লোড করা যায়নি, ইন্টারনেট চেক করে আবার চেষ্টা করুন','warn');return;}
+  const list=state.employeeExpenses||[];
+  if(!list.length){showToast('⚠️ কোনো এক্সপেন্স রেকর্ড নেই','warn');return;}
+  const wb=XLSX.utils.book_new();
+  const rows=[['Date','Employee','Category','Amount','Note','Status']]
+    .concat(list.map(x=>[fmtDate(x.date),x.empName||empName(x.empId),x.category,Number(x.amount||0),x.note||'',x.status]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Employee Expenses');
+  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([wbout],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  await _rpShareOrDownload(blob,'employee_expenses_'+todayStr()+'.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','Employee Expense Report');
+}
+
+// Generic share-or-download helper — reusable for any future "Share via WhatsApp/OneDrive" button.
+async function _rpShareOrDownload(blob,filename,mimeType,title){
+  try{
+    const file=new File([blob],filename,{type:mimeType});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:title||filename,text:title||filename});
+      return;
+    }
+  }catch(e){
+    if(e && e.name==='AbortError') return; // user cancelled the share sheet — not an error
+  }
+  // Fallback: plain download, then let the person share it manually from their Files/Downloads app
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('📥 ফাইল ডাউনলোড হয়েছে — এখন Files অ্যাপ থেকে WhatsApp/OneDrive এ শেয়ার করতে পারবেন');
+}
+
 function saveEmployeeDepartment(){
   ensureEmployeeHRState();var name=(v('empNewDept')||'').trim();if(!name){showToast('⚠️ Department name required','warn');return;}
   var exists=state.employeeDepartments.some(function(x){return x.name.toLowerCase()===name.toLowerCase();});if(exists){showToast('⚠️ Department already exists','warn');return;}
