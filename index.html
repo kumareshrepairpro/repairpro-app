@@ -56277,54 +56277,11 @@ if(typeof _origLoadSC==='function') {
 
 </script>
 
-<!-- ═══ SheetJS (Excel .xlsx Import/Export) + jsPDF (PDF Export) ═══
-     Loaded via a resilient multi-CDN loader (same pattern already used for the
-     OCR engine above) instead of plain <script src> tags, because a single CDN
-     mirror being slow/blocked on the user's network was causing "library still
-     loading" errors on the Excel/PDF export buttons even though the app itself
-     was working fine. -->
-<script>
-(function(){
-  function loadScript(url, checkVar){
-    return new Promise(function(resolve,reject){
-      var s=document.createElement('script');
-      s.src=url;
-      s.onload=function(){
-        var gotVar = checkVar ? !!window[checkVar] : true;
-        if(gotVar) resolve(url); else reject(new Error('Script loaded but window.'+checkVar+' was not set'));
-      };
-      s.onerror=function(){ reject(new Error('Failed to load '+url)); };
-      document.head.appendChild(s);
-    });
-  }
-  function loadWithFallback(urls, checkVar){
-    var i=0;
-    function attempt(){
-      if(i>=urls.length) return Promise.reject(new Error('All CDN sources failed: '+urls.join(', ')));
-      var url=urls[i++];
-      return loadScript(url, checkVar).catch(attempt);
-    }
-    return attempt();
-  }
-  var xlsxUrls=[
-    'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
-    'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
-  ];
-  var jspdfUrls=[
-    'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
-    'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
-  ];
-  var autotableUrls=[
-    'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.6.0/dist/jspdf.plugin.autotable.min.js',
-    'https://unpkg.com/jspdf-autotable@3.6.0/dist/jspdf.plugin.autotable.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js'
-  ];
-  window.__xlsxLibPromise = loadWithFallback(xlsxUrls, 'XLSX').catch(function(e){console.error('XLSX: all CDN mirrors failed —', e.message);});
-  window.__jspdfLibPromise = loadWithFallback(jspdfUrls, 'jspdf').then(function(){ return loadWithFallback(autotableUrls, null); }).catch(function(e){console.error('jsPDF: all CDN mirrors failed —', e.message);});
-})();
-</script>
+<!-- ═══ SheetJS (Excel .xlsx Import/Export) ═══ -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- ═══ jsPDF (PDF Export) ═══ -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.6.0/dist/jspdf.plugin.autotable.min.js"></script>
 
 <!-- ═══════════════════════════════════════════════════════════════
      FINAL WORKFLOW SAFETY PATCH
@@ -60375,10 +60332,9 @@ function loadEmployeeExpenses(){
   target.innerHTML='<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Employee</th><th>Category</th><th>Amount</th><th>Note</th><th>Status</th><th>Action</th></tr></thead><tbody>'+
     list.map(function(x){return '<tr><td>'+fmtDate(x.date)+'</td><td>'+xss(x.empName||empName(x.empId))+'</td><td>'+xss(x.category)+'</td><td>'+fmtAmt(x.amount)+'</td><td>'+xss(x.note||'—')+'</td><td><span class="badge '+(x.status==='Approved'||x.status==='Paid'?'badge-success':x.status==='Rejected'?'badge-danger':'badge-warning')+'">'+x.status+'</span></td><td>'+(x.status==='Pending'?'<button class="btn btn-success btn-sm" onclick="updateEmployeeExpense(\''+js(x.id)+'\',\'Approved\')">✓</button> <button class="btn btn-danger btn-sm" onclick="updateEmployeeExpense(\''+js(x.id)+'\',\'Rejected\')">✕</button>':'—')+'</td></tr>';}).join('')+'</tbody></table></div>';
 }
-async function exportEmployeeExpensesXLSX(){
+function exportEmployeeExpensesXLSX(){
   ensureEmployeeHRState();
-  if(typeof XLSX==='undefined'&&window.__xlsxLibPromise){await window.__xlsxLibPromise;}
-  if(typeof XLSX==='undefined'){showToast('⚠️ Excel library লোড করা যায়নি, ইন্টারনেট চেক করে আবার চেষ্টা করুন','warn');return;}
+  if(typeof XLSX==='undefined'){showToast('⚠️ Excel library still loading, একটু পর আবার চেষ্টা করুন','warn');return;}
   const list=state.employeeExpenses||[];
   if(!list.length){showToast('⚠️ কোনো এক্সপেন্স রেকর্ড নেই','warn');return;}
   const wb=XLSX.utils.book_new();
@@ -60390,11 +60346,10 @@ async function exportEmployeeExpensesXLSX(){
   showToast('✅ Excel ফাইল ডাউনলোড হয়েছে');
 }
 
-async function exportEmployeeExpensesPDF(forShare){
+function exportEmployeeExpensesPDF(forShare){
   ensureEmployeeHRState();
-  let jsPDFLib=window.jspdf&&window.jspdf.jsPDF?window.jspdf.jsPDF:window.jsPDF;
-  if(!jsPDFLib&&window.__jspdfLibPromise){await window.__jspdfLibPromise;jsPDFLib=window.jspdf&&window.jspdf.jsPDF?window.jspdf.jsPDF:window.jsPDF;}
-  if(!jsPDFLib){showToast('⚠️ PDF library লোড করা যায়নি, ইন্টারনেট চেক করে আবার চেষ্টা করুন','warn');return null;}
+  const jsPDFLib=window.jspdf&&window.jspdf.jsPDF?window.jspdf.jsPDF:window.jsPDF;
+  if(!jsPDFLib){showToast('⚠️ PDF library still loading, একটু পর আবার চেষ্টা করুন','warn');return null;}
   const list=state.employeeExpenses||[];
   if(!list.length){showToast('⚠️ কোনো এক্সপেন্স রেকর্ড নেই','warn');return null;}
   const doc=new jsPDFLib({orientation:'portrait',unit:'mm',format:'a4'});
@@ -60423,7 +60378,7 @@ async function exportEmployeeExpensesPDF(forShare){
 // Bluetooth — whatever apps are installed) with the generated file attached.
 // Falls back to a plain download if the browser/device doesn't support file sharing.
 async function shareEmployeeExpensesPDF(){
-  const doc=await exportEmployeeExpensesPDF(true);
+  const doc=exportEmployeeExpensesPDF(true);
   if(!doc) return;
   const blob=doc.output('blob');
   const filename='employee_expenses_'+todayStr()+'.pdf';
@@ -60431,8 +60386,7 @@ async function shareEmployeeExpensesPDF(){
 }
 async function shareEmployeeExpensesXLSX(){
   ensureEmployeeHRState();
-  if(typeof XLSX==='undefined'&&window.__xlsxLibPromise){await window.__xlsxLibPromise;}
-  if(typeof XLSX==='undefined'){showToast('⚠️ Excel library লোড করা যায়নি, ইন্টারনেট চেক করে আবার চেষ্টা করুন','warn');return;}
+  if(typeof XLSX==='undefined'){showToast('⚠️ Excel library still loading','warn');return;}
   const list=state.employeeExpenses||[];
   if(!list.length){showToast('⚠️ কোনো এক্সপেন্স রেকর্ড নেই','warn');return;}
   const wb=XLSX.utils.book_new();
